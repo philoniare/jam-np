@@ -264,6 +264,46 @@ Node -> Node
 <-- FIN
 ```
 
+### CE 149: Header request
+
+Request for a sequence of block headers.
+
+This is the header-only equivalent of CE 128 (block request). The request message is identical, and
+the same two types of request are supported:
+
+- Ascending exclusive: The sequence of headers in the response should start with the header of a
+  child of the given block, followed by the header of a grandchild, and so on.
+- Descending inclusive: The sequence of headers in the response should start with the header of the
+  given block, followed by the header of its parent, grandparent, and so on.
+
+The number of headers in the response should be limited to the given maximum. The responding node
+may return fewer headers than are available, for example to limit the size of the response, but
+should return at least one header if any are available. The response should not contain headers of
+blocks which, from the responding node's perspective, cannot be finalized. If it is not possible to
+satisfy the request with this constraint (for example, because the header of a block which cannot
+be finalized is explicitly requested), the stream should simply be reset/stopped.
+
+The requesting node should verify that the returned headers form a chain connected to the given
+header hash. For a descending request, the hash of the first header should match the given hash,
+and the hash of each subsequent header should match the parent hash in the header preceding it. For
+an ascending request, the parent hash in the first header should match the given hash, and the
+parent hash in each subsequent header should match the hash of the header preceding it. Note that
+this does not by itself imply that the headers, or the blocks they belong to, are valid.
+
+A node may respond to header requests for blocks whose extrinsics it no longer holds.
+
+```
+Direction = 0 (Ascending exclusive) OR 1 (Descending inclusive) (Single byte)
+Maximum Headers = u32
+
+Node -> Node
+
+--> Header Hash ++ Direction ++ Maximum Headers
+--> FIN
+<-- [Header]
+<-- FIN
+```
+
 ### CE 129: State request
 
 Request for a range of a block's posterior state.
